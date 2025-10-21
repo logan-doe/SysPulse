@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SysPulse - System Monitor</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>💓 SysPulse</h1>
+            <p class="subtitle">Системный мониторинг в реальном времени</p>
+        </header>
+
+        <main class="main-content">
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-label">Статус:</span>
+                    <span class="status-value" id="status">Загрузка...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Версия:</span>
+                    <span class="status-value" id="version">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Обновлено:</span>
+                    <span class="status-value" id="lastUpdate">-</span>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card" id="cpu-card">
+                    <h3>🖥️ Процессор</h3>
+                    <div class="metric-value" id="cpu-usage">-</div>
+                    <div class="metric-details" id="cpu-details">-</div>
+                </div>
+
+                <div class="metric-card" id="memory-card">
+                    <h3>🧠 Память</h3>
+                    <div class="metric-value" id="memory-usage">-</div>
+                    <div class="metric-details" id="memory-details">-</div>
+                </div>
+
+                <div class="metric-card" id="disk-card">
+                    <h3>💾 Диск</h3>
+                    <div class="metric-value" id="disk-usage">-</div>
+                    <div class="metric-details" id="disk-details">-</div>
+                </div>
+            </div>
+
+            <div class="alerts-section">
+                <h3>⚠️ Оповещения</h3>
+                <div id="alerts-container">
+                    <div class="alert-message">Оповещений нет</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
