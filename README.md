@@ -35,7 +35,7 @@ SysPulse is a modern, real-time system monitoring tool that provides comprehensi
 #### Method 1: From Source (Development)
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone github.com/logan-doe/SysPulse
 cd syspulse
 
 # Run directly with Go
