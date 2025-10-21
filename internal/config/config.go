@@ -22,7 +22,7 @@ func Load() *Config {
 	cfg := &Config{
 		Port:           getEnv("SYS_PULSE_PORT", "8080"),
 		Environment:    getEnv("SYS_PULSE_ENVIRONMENT", "development"),
-		UpdateInterval: getEnvInt("SYS_PULSE_UPDATE_INTERVAL", 2000),
+		UpdateInterval: getEnvInt("SYS_PULSE_UPDATE_INTERVAL", 500),
 		AlertThreshholds: AlertConfig{
 			CPU:  getEnvFloat("SYS_PULSE_ALERT_CPU", 80.0),
 			RAM:  getEnvFloat("SYS_PULSE_ALERT_RAM", 85.0),

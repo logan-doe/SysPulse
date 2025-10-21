@@ -8,6 +8,7 @@ type SystemMetrics struct {
 	Memory    MemInfo    `json:"memory"`
 	Disk      DiskInfo   `json:"disk"`
 	System    SystemInfo `json:"system"`
+	Alerts    []Alert    `json:"alerts,omitempty"`
 }
 
 type CPUInfo struct {
@@ -39,6 +40,7 @@ type SystemInfo struct {
 	Uptime   uint64 `json:"uptime"`   // time since system started
 }
 
+// system alerts
 type Alert struct { // alert is to show some important system messages to user
 	ID        string    `json:"id"`        // id
 	Type      string    `json:"type"`      // cpu, ram or disk
@@ -47,4 +49,23 @@ type Alert struct { // alert is to show some important system messages to user
 	Value     float64   `json:"value"`     // current value
 	Threshold float64   `json:"threshold"` // use to determine level of alert
 	Timestamp time.Time `json:"timestamp"` // time LOL
+	Active    bool      `json:"active"`    // show if alertis active
+}
+
+// alert config
+type AlertConfig struct { // configurate on which level alert is getting enabled
+	CPUTreshold  float64 `json:"cpu_treshold"`
+	RAMTreshold  float64 `json:"ram_treshold"`
+	DiskTreshold float64 `json:"disk_treshold"`
+	Enabled      bool    `json:"enabled"`
+}
+
+// alert hystory
+type AlertHistory struct {
+	Alerts []Alert `json:"alerts"`
+	Stats  struct {
+		TotalAlerts  int `json:"total_alerts"`
+		ActiveAlerts int `json:"active_alerts"`
+		TodayAlerts  int `json:"today_alerts"`
+	} `json:"stats"`
 }

@@ -15,6 +15,7 @@
 
         <main class="main-content">
             <div class="status-bar">
+
                 <div class="status-item">
                     <span class="status-label">Статус:</span>
                     <span class="status-value" id="status">Загрузка...</span>
@@ -27,6 +28,10 @@
                     <span class="status-label">Обновлено:</span>
                     <span class="status-value" id="lastUpdate">-</span>
                 </div>
+                <div class="status-item">
+                    <span class="status-label">Частота обновления:</span>
+                    <span class="status-value" id="updateFrequency">500ms</span>
+                </div>
             </div>
 
             <div class="metrics-grid">
@@ -34,18 +39,27 @@
                     <h3>🖥️ Процессор</h3>
                     <div class="metric-value" id="cpu-usage">-</div>
                     <div class="metric-details" id="cpu-details">-</div>
+                    <div class="chart-container">
+                        <canvas id="cpu-chart"></canvas>
+                    </div>
                 </div>
 
                 <div class="metric-card" id="memory-card">
                     <h3>🧠 Память</h3>
                     <div class="metric-value" id="memory-usage">-</div>
                     <div class="metric-details" id="memory-details">-</div>
+                    <div class="chart-container">
+                        <canvas id="memory-chart"></canvas>
+                    </div>
                 </div>
 
                 <div class="metric-card" id="disk-card">
                     <h3>💾 Диск</h3>
                     <div class="metric-value" id="disk-usage">-</div>
                     <div class="metric-details" id="disk-details">-</div>
+                    <div class="chart-container">
+                        <canvas id="disk-chart"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -59,5 +73,9 @@
     </div>
 
     <script src="/static/js/app.js"></script>
+<!-- Подключаем Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="/static/js/app.js"></script>
 </body>
 </html>

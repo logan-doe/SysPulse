@@ -129,3 +129,41 @@ body {
         font-size: 2rem;
     }
 }
+
+.chart-container {
+    margin-top: 15px;
+    height: 120px;
+    position: relative;
+}
+
+/* Стили для индикаторов оповещений */
+.alert-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 8px 12px;
+    border-radius: 5px;
+    margin: 5px 0;
+    animation: pulse 2s infinite;
+}
+
+.alert-critical {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 8px 12px;
+    border-radius: 5px;
+    margin: 5px 0;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Цвета для разных уровней загрузки */
+.metric-normal { color: #4CAF50; }
+.metric-warning { color: #FF9800; }
+.metric-critical { color: #f44336; }

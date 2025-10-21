@@ -32,7 +32,7 @@ func (ms *MetricsService) GetSystemMetrics() models.SystemMetrics {
 
 func (ms *MetricsService) getCPUInfo() models.CPUInfo {
 
-	cpuPercent, _ := cpu.Percent(time.Second, false)
+	cpuPercent, _ := cpu.Percent(400*time.Millisecond, false)
 	cpuUsage := 0.0
 
 	if len(cpuPercent) > 0 {

@@ -12,9 +12,10 @@ import (
 )
 
 var (
-	version        = "dev" // App version
+	version        = "1.0.0" // App version
 	metricsService *services.MetricsService
 	wsService      *services.WebSocketService
+	alertService   *services.AlertService
 )
 
 func main() {
@@ -25,8 +26,10 @@ func main() {
 	// initialize services
 	metricsService = services.NewMetricsService()
 	wsService = services.NewWebSocketService()
+	alertService = services.NewAlertService()
 
 	handlers.SetMetricService(metricsService)
+	handlers.SetAlertService(alertService)
 
 	// web socket service start
 	wsService.Start()
@@ -60,6 +63,9 @@ func setupRoutes() {
 	http.HandleFunc("/api/health", handlers.HealthHandler)
 	http.HandleFunc("/api/metrics", handlers.MetricsHandler)
 	http.HandleFunc("/api/clients", handlers.ClientsHandler(wsService))
+	http.HandleFunc("/api/alerts/history", handlers.AlertHandler)
+	http.HandleFunc("/api/alerts/config", handlers.AlertConfigHandler)
+	http.HandleFunc("/api/alerts/clear", handlers.ClearAlertHandler)
 
 	http.HandleFunc("/ws", wsService.HandleConnection)
 
@@ -69,16 +75,22 @@ func setupRoutes() {
 }
 
 func startMetricBroadcast() { // starting periodically sending metrics
-	ticker := time.NewTicker(2 * time.Second) // 2 seconds update rate
+	cfg := config.Load()
+
+	ticker := time.NewTicker(time.Duration(cfg.UpdateInterval) * time.Millisecond) // update rate
 	defer ticker.Stop()
 
 	for range ticker.C {
 		metrics := metricsService.GetSystemMetrics()
+
+		alerts := alertService.CheckMetrics(metrics)
+		metrics.Alerts = alerts
+
 		wsService.BroadcastMessage(metrics)
 
 		clientsCount := wsService.GetConnectedClientCount()
-		if clientsCount > 0 {
-			log.Printf(" sending metrics to %d clients", clientsCount)
+		if clientsCount > 0 && time.Now().Second()%10 == 0 {
+			log.Printf("🪪 sending metrics to %d clients", clientsCount)
 		}
 	}
 
