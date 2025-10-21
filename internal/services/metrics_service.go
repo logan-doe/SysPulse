@@ -5,6 +5,11 @@ import (
 	"runtime"
 	"syspulse/internal/models"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/load"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 type MetricsService struct {
@@ -26,12 +31,30 @@ func (ms *MetricsService) GetSystemMetrics() models.SystemMetrics {
 }
 
 func (ms *MetricsService) getCPUInfo() models.CPUInfo {
+
+	cpuPercent, _ := cpu.Percent(time.Second, false)
+	cpuUsage := 0.0
+
+	if len(cpuPercent) > 0 {
+		cpuUsage = cpuPercent[0]
+	}
+
+	cpuCores, _ := cpu.Counts(true)
+
+	avgLoad, _ := load.Avg()
+	load1, load5, load15 := 0.0, 0.0, 0.0
+	if avgLoad != nil {
+		load1 = avgLoad.Load1
+		load5 = avgLoad.Load5
+		load15 = avgLoad.Load15
+	}
+
 	return models.CPUInfo{
-		Usage:  ms.calculateCPUUsage(), // default random value
-		Cores:  runtime.NumCPU(),
-		Load1:  1.2,
-		Load5:  1.5,
-		Load15: 1.3,
+		Usage:  cpuUsage,
+		Cores:  cpuCores,
+		Load1:  load1,
+		Load5:  load5,
+		Load15: load15,
 	}
 }
 
@@ -39,24 +62,99 @@ func (ms *MetricsService) getMemoryInfo() models.MemInfo {
 
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-
-	total := memStats.Sys
-	used := memStats.Alloc
-	available := total - used
-	usage := float64(used) / float64(total) * 100
-
+	memory, err := mem.VirtualMemory()
+	if err != nil {
+		var memStat runtime.MemStats
+		runtime.ReadMemStats(&memStat)
+		return models.MemInfo{
+			Total:     memStat.Sys,
+			Used:      memStat.Alloc,
+			Available: memStat.Sys - memStat.Alloc,
+			Usage:     float64(memStats.Alloc) / float64(memStats.Sys) * 100,
+		}
+	}
 	return models.MemInfo{
-		Total:     total,
-		Used:      used,
-		Available: available,
-		Usage:     usage,
+		Total:     memory.Total,
+		Used:      memory.Used,
+		Available: memory.Available,
+		Usage:     memory.UsedPercent,
 	}
 }
 
 func (ms *MetricsService) getDiskInfo() models.DiskInfo {
+
+	partitions, err := disk.Partitions(false)
+	if err != nil {
+		return ms.getDiskInfoFallback()
+
+	}
+
+	var largestPartition string
+	var maxsize uint64
+
+	for _, partition := range partitions {
+		if isSpecialFilesystem(partition.Fstype) {
+			continue
+		}
+
+		usage, err := disk.Usage(partition.Mountpoint)
+		if err != nil {
+			continue
+		}
+
+		if usage.Total > maxsize {
+			maxsize = usage.Total
+			largestPartition = partition.Mountpoint
+		}
+	}
+
+	if largestPartition != "" {
+		usage, err := disk.Usage(largestPartition)
+		if err == nil {
+			return models.DiskInfo{
+				Total: usage.Total,
+				Used:  usage.Used,
+				Free:  usage.Free,
+				Usage: usage.UsedPercent,
+			}
+		}
+	}
+	return ms.getDiskInfoFallback()
+}
+
+func isSpecialFilesystem(fstype string) bool {
+	specialFS := []string{
+		"tmpfs", "devtmpfs", "squashfs", "overlay",
+		"proc", "sysfs", "devpts", "mqueue", "debugfs",
+		"securityfs", "pstore", "cgroup", "cgroup2",
+	}
+
+	for _, fs := range specialFS {
+		if fstype == fs {
+			return true
+		}
+	}
+	return false
+}
+
+func (ms *MetricsService) getDiskInfoFallback() models.DiskInfo {
+
+	mountPoints := []string{"/", "/home", "/mnt", "/media", "C:\\", "D:\\"}
+
+	for _, point := range mountPoints {
+		if usage, err := disk.Usage(point); err == nil {
+			return models.DiskInfo{
+				Total: usage.Total,
+				Used:  usage.Used,
+				Free:  usage.Free,
+				Usage: usage.UsedPercent,
+			}
+		}
+	}
+
 	return models.DiskInfo{
-		Total: 2000 * 1024 * 1024 * 1024,
-		Used:  460 * 1024 * 1024 * 1024,
+		Total: 5000 * 1024 * 1024 * 1024,
+		Used:  1234 * 1024 * 1024 * 1024,
 		Free:  1540 * 1024 * 1024 * 1024,
 		Usage: 35.0,
 	}
@@ -69,55 +167,15 @@ func (ms *MetricsService) getSystemInfo() models.SystemInfo {
 		Hostname: hostname,
 		OS:       runtime.GOOS,
 		Platform: runtime.GOARCH,
-		Uptime:   ms.getSystemUpTime(),
+		Uptime:   uint64(time.Now().Unix() - ms.getSystemUpTime()),
 	}
+}
+
+func (ms *MetricsService) getSystemUpTime() int64 {
+	return time.Now().Add(-24 * time.Hour).Unix()
 }
 
 type CPUStats struct {
 	Time  time.Time
 	Usage float64
-}
-
-func (ms *MetricsService) calculateCPUUsage() float64 {
-	// Более реалистичная симуляция загрузки CPU
-	// Основана на времени и случайных факторах
-	now := time.Now()
-	second := now.Second()
-
-	// Симулируем разную загрузку в зависимости от времени
-	var usage float64
-
-	switch {
-	case second < 15:
-		usage = 10.0 + float64(second) // Плавный рост 10-25%
-	case second < 30:
-		usage = 40.0 - float64(second-15) // Плавное снижение 40-25%
-	case second < 45:
-		usage = 15.0 + float64(second-30)*0.5 // Медленный рост 15-22.5%
-	default:
-		usage = 60.0 - float64(second-45) // Снижение 60-45%
-	}
-
-	// Добавляем небольшую случайную вариацию
-	if second%2 == 0 {
-		usage += 2.0
-	} else {
-		usage -= 1.5
-	}
-
-	// Ограничиваем диапазон
-	if usage < 5.0 {
-		usage = 5.0
-	}
-	if usage > 95.0 {
-		usage = 95.0
-	}
-
-	return usage
-}
-
-func (ms *MetricsService) getSystemUpTime() uint64 {
-	baseUpTime := uint64(24 * 60 * 60)
-	additional := uint64(time.Now().Minute() * 60)
-	return baseUpTime + additional
 }

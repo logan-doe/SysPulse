@@ -4,17 +4,37 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"syspulse/internal/config"
 	"syspulse/internal/handlers"
+	"syspulse/internal/services"
 )
 
-var version = "dev" // App version
+var (
+	version        = "dev" // App version
+	metricsService *services.MetricsService
+	wsService      *services.WebSocketService
+)
 
 func main() {
 	log.Printf("⚡️ SysPulse is started. Version (%s)\n", version)
 	log.Printf("📊 Real Time System Monitor")
+	log.Printf("🔌 Web Socket support enabled")
 
+	// initialize services
+	metricsService = services.NewMetricsService()
+	wsService = services.NewWebSocketService()
+
+	handlers.SetMetricService(metricsService)
+
+	// web socket service start
+	wsService.Start()
+
+	//sending out metrics
+	go startMetricBroadcast()
+
+	// loading config
 	cfg := config.Load()
 
 	setupRoutes()
@@ -39,9 +59,27 @@ func setupRoutes() {
 	http.HandleFunc("/api/version", handlers.VersionHandler(version))
 	http.HandleFunc("/api/health", handlers.HealthHandler)
 	http.HandleFunc("/api/metrics", handlers.MetricsHandler)
-	http.HandleFunc("/ws", handlers.WebSocketHandler)
+	http.HandleFunc("/api/clients", handlers.ClientsHandler(wsService))
+
+	http.HandleFunc("/ws", wsService.HandleConnection)
 
 	// ─── Main Page ───────────────────────────────────────────────────────
 	http.HandleFunc("/", handlers.IndexHandler)
+
+}
+
+func startMetricBroadcast() { // starting periodically sending metrics
+	ticker := time.NewTicker(2 * time.Second) // 2 seconds update rate
+	defer ticker.Stop()
+
+	for range ticker.C {
+		metrics := metricsService.GetSystemMetrics()
+		wsService.BroadcastMessage(metrics)
+
+		clientsCount := wsService.GetConnectedClientCount()
+		if clientsCount > 0 {
+			log.Printf(" sending metrics to %d clients", clientsCount)
+		}
+	}
 
 }
