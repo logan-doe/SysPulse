@@ -617,3 +617,54 @@ body {
     width: 25%; /* ⬅️ УВЕЛИЧИЛИ СТАТУС */
     min-width: 100px; /* ⬅️ И минимальную ширину */
 }
+
+
+/* Детали сети */
+.network-details-section {
+    margin-bottom: 30px;
+}
+
+.network-details-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+
+.network-detail-card {
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
+}
+
+.network-detail-card h4 {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.network-detail-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+/* Адаптивность */
+@media (max-width: 1200px) {
+    .network-details-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .network-details-grid {
+        grid-template-columns: 1fr;
+    }
+}

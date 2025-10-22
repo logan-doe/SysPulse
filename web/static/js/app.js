@@ -170,7 +170,19 @@ class SysPulseMonitor {
         this.updateElement('network-download', `${net.current_download.toFixed(2)} Mb/s`);
         this.updateElement('network-ping', `${net.ping.toFixed(1)} ms`);
         this.updateElement('network-ip', net.local_ip || '-');
+
+        // Тотальные счетчики из NetworkDetails
+        if (data.network_details) {
+            const details = data.network_details;
+            this.updateElement('network-mac', details.mac_address);
+            this.updateElement('network-public-ip', details.public_ip);
+            this.updateElement('network-total-upload', `${details.total_upload} MB`);
+            this.updateElement('network-total-download', `${details.total_download} MB`);
+        }
+
     }
+
+
 
     updateProcesses(data) {
         if (!data.processes || !Array.isArray(data.processes)) return;
