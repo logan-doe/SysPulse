@@ -595,3 +595,25 @@ body {
     text-transform: uppercase;
     color: white; /* Белый по умолчанию */
 }
+
+/* ФИКСИРОВАННЫЕ ШИРИНЫ КОЛОНОК */
+.processes-table th:nth-child(1), /* Процесс */
+.processes-table td:nth-child(1) {
+    width: 35%; /* Немного уменьшили процесс */
+}
+
+.processes-table th:nth-child(2), /* CPU */
+.processes-table td:nth-child(2) {
+    width: 20%;
+}
+
+.processes-table th:nth-child(3), /* Память */
+.processes-table td:nth-child(3) {
+    width: 20%;
+}
+
+.processes-table th:nth-child(4), /* Статус */
+.processes-table td:nth-child(4) {
+    width: 25%; /* ⬅️ УВЕЛИЧИЛИ СТАТУС */
+    min-width: 100px; /* ⬅️ И минимальную ширину */
+}

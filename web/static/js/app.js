@@ -203,7 +203,7 @@ class SysPulseMonitor {
                 <td class="process-name">${this.truncateText(proc.process || 'Unknown', 25)}</td>
                 <td class="process-cpu">${proc.cpu_percent.toFixed(1)}%</td>
                 <td class="process-memory">${proc.memory_percent.toFixed(1)}%</td>
-                <td class="process-status">${proc.status || 'N/A'}</td>
+                <td class="process-status" data-status="${proc.status || 'sleep'}">${proc.status || 'N/A'}</td>
             </tr>
         `).join('');
         
