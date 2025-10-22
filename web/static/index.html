@@ -3,40 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SysPulse - System Monitor</title>
+    <title>SysPulse Monitor</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="container">
         <header class="header">
-            <h1>🖥️ SysPulse</h1>
-            <p class="subtitle">Системный мониторинг в реальном времени</p>
+            <div>
+                <h1>SysPulse</h1>
+                <p class="subtitle">Системный мониторинг в реальном времени</p>
+            </div>
+            <button class="theme-toggle" id="theme-toggle">
+                🌙 Тёмная
+            </button>
         </header>
 
         <main class="main-content">
+            <!-- Статус бар -->
             <div class="status-bar">
-
                 <div class="status-item">
                     <span class="status-label">Статус:</span>
-                    <span class="status-value" id="status">Загрузка...</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Версия:</span>
-                    <span class="status-value" id="version">-</span>
+                    <span class="status-value" id="status">Подключение...</span>
                 </div>
                 <div class="status-item">
                     <span class="status-label">Обновлено:</span>
                     <span class="status-value" id="lastUpdate">-</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">Частота обновления:</span>
-                    <span class="status-value" id="updateFrequency">500ms</span>
+                    <span class="status-label">Частота:</span>
+                    <span class="status-value">500ms</span>
                 </div>
             </div>
 
+            <!-- Основные метрики -->
             <div class="metrics-grid">
-                <div class="metric-card" id="cpu-card">
-                    <h3>🖥️ Процессор</h3>
+                <div class="metric-card cpu">
+                    <h3>ПРОЦЕССОР</h3>
                     <div class="metric-value" id="cpu-usage">-</div>
                     <div class="metric-details" id="cpu-details">-</div>
                     <div class="chart-container">
@@ -44,8 +46,8 @@
                     </div>
                 </div>
 
-                <div class="metric-card" id="memory-card">
-                    <h3>🧠 Память</h3>
+                <div class="metric-card memory">
+                    <h3>ПАМЯТЬ</h3>
                     <div class="metric-value" id="memory-usage">-</div>
                     <div class="metric-details" id="memory-details">-</div>
                     <div class="chart-container">
@@ -53,8 +55,8 @@
                     </div>
                 </div>
 
-                <div class="metric-card" id="disk-card">
-                    <h3>💾 Диск</h3>
+                <div class="metric-card disk">
+                    <h3>ДИСК</h3>
                     <div class="metric-value" id="disk-usage">-</div>
                     <div class="metric-details" id="disk-details">-</div>
                     <div class="chart-container">
@@ -63,8 +65,51 @@
                 </div>
             </div>
 
+            <!-- Сетевые метрики -->
+            <div class="network-section">
+                <div class="section-title">СЕТЬ</div>
+                <div class="network-grid">
+                    <div class="network-card">
+                        <h4>СТАТУС</h4>
+                        <div class="network-value" id="network-status">-</div>
+                    </div>
+                    <div class="network-card">
+                        <h4>ОТПРАВКА</h4>
+                        <div class="network-value" id="network-upload">-</div>
+                    </div>
+                    <div class="network-card">
+                        <h4>ЗАГРУЗКА</h4>
+                        <div class="network-value" id="network-download">-</div>
+                    </div>
+                    <div class="network-card">
+                        <h4>ПИНГ</h4>
+                        <div class="network-value" id="network-ping">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Процессы -->
+            <div class="processes-section">
+                <div class="section-title">ПРОЦЕССЫ</div>
+                <div class="processes-grid">
+                    <div class="process-table">
+                        <h4>ТОП ПО CPU</h4>
+                        <div class="processes-container" id="cpu-processes">
+                            <div class="no-processes">Загрузка процессов...</div>
+                        </div>
+                    </div>
+                    <div class="process-table">
+                        <h4>ТОП ПО ПАМЯТИ</h4>
+                        <div class="processes-container" id="memory-processes">
+                            <div class="no-processes">Загрузка процессов...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Оповещения -->
             <div class="alerts-section">
-                <h3>⚠️ Оповещения</h3>
+                <h3>ОПОВЕЩЕНИЯ</h3>
                 <div id="alerts-container">
                     <div class="alert-message">Оповещений нет</div>
                 </div>
@@ -72,10 +117,7 @@
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/js/app.js"></script>
-<!-- Подключаем Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script src="/static/js/app.js"></script>
 </body>
 </html>

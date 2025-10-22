@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -66,6 +67,11 @@ func setupRoutes() {
 	http.HandleFunc("/api/alerts/history", handlers.AlertHandler)
 	http.HandleFunc("/api/alerts/config", handlers.AlertConfigHandler)
 	http.HandleFunc("/api/alerts/clear", handlers.ClearAlertHandler)
+
+	http.HandleFunc("/api/debug", func(w http.ResponseWriter, r *http.Request) {
+		metrics := metricsService.GetSystemMetrics()
+		json.NewEncoder(w).Encode(metrics)
+	})
 
 	http.HandleFunc("/ws", wsService.HandleConnection)
 

@@ -1,3 +1,55 @@
+:root {
+    /* Светлая тема - строгие цвета */
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --text-on-accent: #ffffff;
+    --border-color: #e2e8f0;
+    --accent-color: #334155;
+    
+    /* Приглушенные цвета для карточек */
+    --card-cpu: linear-gradient(135deg, #475569, #334155);
+    --card-memory: linear-gradient(135deg, #0f766e, #115e59);
+    --card-disk: linear-gradient(135deg, #7c3aed, #6d28d9);
+    --card-network: linear-gradient(135deg, #0369a1, #0c4a6e);
+    --card-process: linear-gradient(135deg, #b45309, #92400e);
+    
+    /* Цвета графиков */
+    --chart-cpu: #475569;
+    --chart-memory: #0f766e;
+    --chart-disk: #7c3aed;
+    
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] {
+    /* Темная тема - строгие цвета */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-on-accent: #ffffff;
+    --border-color: #334155;
+    --accent-color: #cbd5e1;
+    
+    /* Темные градиенты */
+    --card-cpu: linear-gradient(135deg, #475569, #334155);
+    --card-memory: linear-gradient(135deg, #0f766e, #115e59);
+    --card-disk: linear-gradient(135deg, #7c3aed, #6d28d9);
+    --card-network: linear-gradient(135deg, #0369a1, #0c4a6e);
+    --card-process: linear-gradient(135deg, #b45309, #92400e);
+    
+    /* Цвета графиков для темной темы */
+    --chart-cpu: #cbd5e1;
+    --chart-memory: #2dd4bf;
+    --chart-disk: #a78bfa;
+    
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -5,165 +57,541 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    transition: all 0.3s ease;
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 20px;
 }
 
+/* Хедер */
 .header {
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 30px;
-    color: white;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .header h1 {
-    font-size: 3rem;
-    margin-bottom: 10px;
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
 }
 
 .subtitle {
-    font-size: 1.2rem;
-    opacity: 0.9;
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-top: 4px;
 }
 
+.theme-toggle {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+    background: var(--bg-secondary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+}
+
+/* Статус бар */
 .status-bar {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: space-around;
-    color: white;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
 }
 
 .status-item {
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: var(--shadow);
 }
 
 .status-label {
-    display: block;
-    font-size: 0.9rem;
-    opacity: 0.8;
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
 .status-value {
-    font-weight: bold;
-    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-color);
 }
 
+/* Основные метрики */
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     margin-bottom: 30px;
 }
 
 .metric-card {
-    background: white;
-    border-radius: 15px;
-    padding: 25px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
     transition: transform 0.3s ease;
 }
 
 .metric-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-2px);
+}
+
+.metric-card.cpu {
+    background: var(--card-cpu);
+    color: var(--text-on-accent);
+}
+
+.metric-card.memory {
+    background: var(--card-memory);
+    color: var(--text-on-accent);
+}
+
+.metric-card.disk {
+    background: var(--card-disk);
+    color: var(--text-on-accent);
 }
 
 .metric-card h3 {
-    margin-bottom: 15px;
-    font-size: 1.3rem;
-    color: #555;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    opacity: 0.9;
 }
 
 .metric-value {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin-bottom: 10px;
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 8px;
 }
 
 .metric-details {
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.alerts-section {
-    background: white;
-    border-radius: 15px;
-    padding: 25px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-.alerts-section h3 {
-    margin-bottom: 15px;
-    color: #555;
-}
-
-.alert-message {
-    padding: 10px;
-    border-radius: 5px;
-    background: #f8f9fa;
-    color: #666;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-    .status-bar {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .metrics-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .header h1 {
-        font-size: 2rem;
-    }
+    font-size: 13px;
+    opacity: 0.9;
+    font-weight: 500;
 }
 
 .chart-container {
-    margin-top: 15px;
-    height: 120px;
-    position: relative;
+    height: 60px;
+    margin-top: 20px;
+    opacity: 0.9;
 }
 
-/* Стили для индикаторов оповещений */
-.alert-warning {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    color: #856404;
-    padding: 8px 12px;
-    border-radius: 5px;
-    margin: 5px 0;
-    animation: pulse 2s infinite;
+/* Сетевые метрики */
+.network-section {
+    margin-bottom: 30px;
 }
 
-.alert-critical {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
-    padding: 8px 12px;
-    border-radius: 5px;
-    margin: 5px 0;
-    animation: pulse 1s infinite;
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text-primary);
 }
 
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.7; }
-    100% { opacity: 1; }
+.network-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
 }
 
-/* Цвета для разных уровней загрузки */
-.metric-normal { color: #4CAF50; }
-.metric-warning { color: #FF9800; }
-.metric-critical { color: #f44336; }
+.network-card {
+    background: var(--card-network);
+    color: var(--text-on-accent);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+
+.network-card h4 {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.network-value {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+/* Процессы */
+.processes-section {
+    margin-bottom: 30px;
+}
+
+.processes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.process-table {
+    background: var(--bg-card);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+
+.process-table h4 {
+    padding: 20px;
+    font-size: 16px;
+    font-weight: 700;
+    background: var(--card-process);
+    color: var(--text-on-accent);
+    margin: 0;
+}
+
+.processes-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.processes-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.processes-table th {
+    background: var(--bg-secondary);
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.processes-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.processes-table tr:last-child td {
+    border-bottom: none;
+}
+
+.process-name {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.process-pid {
+    width: 70px;
+    text-align: center;
+    font-family: 'Monaco', 'Menlo', monospace;
+    color: var(--text-secondary);
+}
+
+.process-cpu, .process-memory {
+    width: 80px;
+    text-align: right;
+    font-weight: 700;
+    font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.process-status {
+    width: 60px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Оповещения */
+.alerts-section {
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+
+.alerts-section h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.alert-message {
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Адаптивность */
+@media (max-width: 1200px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .network-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    .network-grid {
+        grid-template-columns: 1fr;
+    }
+    .processes-grid {
+        grid-template-columns: 1fr;
+    }
+    .status-bar {
+        grid-template-columns: 1fr;
+    }
+    .header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    .metric-card {
+        padding: 20px;
+    }
+}
+
+/* Добавляем в конец файла */
+
+/* Модальное окно */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 0;
+    max-width: 600px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-secondary);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+/* Детали процесса */
+.process-detail {
+    display: flex;
+    margin-bottom: 15px;
+    align-items: flex-start;
+}
+
+.process-detail label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 120px;
+    margin-right: 15px;
+}
+
+.process-detail span {
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+.process-detail.full-width {
+    flex-direction: column;
+}
+
+.process-detail.full-width label {
+    margin-bottom: 8px;
+}
+
+.command-line {
+    background: var(--bg-secondary);
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    word-break: break-all;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Кликабельные строки таблицы */
+.processes-table tr {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.processes-table tr:hover {
+    background: var(--bg-secondary);
+}
+
+/* ШАПКА ТАБЛИЦЫ ПРОЦЕССОВ - ФИКСИРОВАННАЯ */
+.processes-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.processes-table th {
+    background: #2d2d2d !important; /* Явно задаем фон */
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #a0a0a0;
+    border-bottom: 1px solid #333;
+    cursor: default !important; /* Запрещаем курсор-указатель */
+}
+
+.processes-table th:hover {
+    background: #2d2d2d !important; /* Убираем hover эффект */
+}
+
+/* ТЕЛО ТАБЛИЦЫ - ТОЛЬКО ЭТИ СТРОКИ КЛИКАБЕЛЬНЫ */
+.processes-table tbody tr {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.processes-table tbody tr:hover {
+    background: #646464 !important; /* Явно задаем цвет */
+}
+
+/* Убеждаемся что ВСЕ ячейки наследуют цвет фона */
+.processes-table tbody tr:hover td {
+    background: transparent !important; /* Наследуем от строки */
+    color: white !important; /* Белый текст на темном фоне */
+}
+
+/* Отдельно для статуса - чтобы тоже был белым */
+.processes-table tbody tr:hover .process-status {
+    color: white !important;
+    background: transparent !important;
+}
+
+/* Базовые цвета для ячеек */
+.processes-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #333;
+    color: white; /* Белый текст по умолчанию */
+    background: transparent; /* Прозрачный фон */
+}
+
+/* Цвета для конкретных колонок */
+.process-name {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    color: white;
+}
+
+.process-pid {
+    width: 70px;
+    text-align: center;
+    font-family: monospace;
+    color: #a0a0a0;
+}
+
+.process-cpu, .process-memory {
+    width: 80px;
+    text-align: right;
+    font-weight: 700;
+    font-family: monospace;
+    color: white;
+}
+
+.process-status {
+    width: 60px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: white; /* Белый по умолчанию */
+}

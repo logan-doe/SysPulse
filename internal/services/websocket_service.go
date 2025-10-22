@@ -77,27 +77,38 @@ func (ws *WebSocketService) BroadcastMessage(metrics models.SystemMetrics) { // 
 	ws.broadcast <- metrics
 }
 
-func (ws *WebSocketService) handleBroadcast() { // processing message sending
+func (ws *WebSocketService) handleBroadcast() {
 	for metrics := range ws.broadcast {
+		log.Printf("📨 Preparing to send metrics - Clients: %d, Network: %v, Processes: %d",
+			len(ws.clients),
+			metrics.Network != models.NetworkStats{},
+			len(metrics.Processes))
+
 		message, err := json.Marshal(metrics)
 		if err != nil {
-			log.Printf("❌ Failed to marshal metric: %v", err)
+			log.Printf("❌ Failed to marshal metrics: %v", err)
 			continue
 		}
+
+		log.Printf("📦 Message size: %d bytes", len(message))
 		ws.sendToAllCLients(message)
 	}
 }
 
-func (ws *WebSocketService) sendToAllCLients(message []byte) { // sending message to each and every connected client
+func (ws *WebSocketService) sendToAllCLients(message []byte) {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
+
+	log.Printf("👥 Sending to %d clients", len(ws.clients))
 
 	for client := range ws.clients {
 		err := client.WriteMessage(websocket.TextMessage, message)
 		if err != nil {
-			log.Printf(" Failed to send Web Socket message: %v", err)
+			log.Printf("❌ Failed to send to client: %v", err)
 			client.Close()
 			delete(ws.clients, client)
+		} else {
+			log.Printf("✅ Message sent successfully to client")
 		}
 	}
 }

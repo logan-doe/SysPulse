@@ -1,14 +1,19 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type SystemMetrics struct {
-	TimeStamp time.Time  `json:"timestamp"`
-	CPU       CPUInfo    `json:"cpu"`
-	Memory    MemInfo    `json:"memory"`
-	Disk      DiskInfo   `json:"disk"`
-	System    SystemInfo `json:"system"`
-	Alerts    []Alert    `json:"alerts,omitempty"`
+	TimeStamp      time.Time       `json:"timestamp"`
+	CPU            CPUInfo         `json:"cpu"`
+	Memory         MemInfo         `json:"memory"`
+	Disk           DiskInfo        `json:"disk"`
+	System         SystemInfo      `json:"system"`
+	Alerts         []Alert         `json:"alerts,omitempty"`
+	Network        NetworkStats    `json:"network"`
+	Processes      []ProcessInfo   `json:"processes"`
+	NetworkDetails *NetworkDetails `json:"network_details,omitempty"`
 }
 
 type CPUInfo struct {
@@ -41,7 +46,7 @@ type SystemInfo struct {
 }
 
 // system alerts
-type Alert struct { // alert is to show some important system messages to user
+type Alert struct {
 	ID        string    `json:"id"`        // id
 	Type      string    `json:"type"`      // cpu, ram or disk
 	Message   string    `json:"message"`   // alert text
@@ -53,7 +58,7 @@ type Alert struct { // alert is to show some important system messages to user
 }
 
 // alert config
-type AlertConfig struct { // configurate on which level alert is getting enabled
+type AlertConfig struct {
 	CPUTreshold  float64 `json:"cpu_treshold"`
 	RAMTreshold  float64 `json:"ram_treshold"`
 	DiskTreshold float64 `json:"disk_treshold"`
@@ -68,4 +73,39 @@ type AlertHistory struct {
 		ActiveAlerts int `json:"active_alerts"`
 		TodayAlerts  int `json:"today_alerts"`
 	} `json:"stats"`
+}
+
+type ProcessInfo struct {
+	PID           int32   `json:"pid"`
+	Process       string  `json:"process"`
+	CPUPercent    float64 `json:"cpu_percent"`
+	MemoryPercent float64 `json:"memory_percent"`
+	MemoryRSS     uint64  `json:"memory_rss"`
+	Status        string  `json:"status"`
+	CommandLine   string  `json:"commandline"`
+	User          string  `json:"user"`
+	CreateTime    int64   `json:"createtime"`
+	Threads       int     `json:"threads"`
+}
+
+type NetworkStats struct {
+	IsOnline        bool    `json:"is_online"`        // am i online ?
+	CurrentUpload   float64 `json:"current_upload"`   // net speed in Mb/s
+	CurrentDownload float64 `json:"current_download"` // net speed in Mb/s
+	Ping            float64 `json:"ping"`             // net dealy in milliseconds
+	LocalIP         string  `json:"local_ip"`
+}
+
+type NetworkDetails struct {
+	PublicIP      string `json:"public_ip"`
+	MACAddress    string `json:"mac_address"`
+	TotalUpload   uint64 `json:"total_upload"`            // total value of used traffic in Mb
+	TotalDownload uint64 `json:"total_download"`          // total value of used traffic in Mb
+	ErrorMessage  string `json:"error_message,omitempty"` // any error ?
+}
+
+type PingStrategy struct {
+	PrinaryServers  []string // reliable servers
+	FallbackServers []string // additional servers if any problem with primaries
+	TimeoutMS       int
 }

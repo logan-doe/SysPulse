@@ -1,713 +1,319 @@
 class SysPulseMonitor {
     constructor() {
-        this.version = '1.0.0';
         this.ws = null;
-        this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 5;
         this.isConnected = false;
-        
-        // История метрик для графиков (60 значений)
-        this.metricsHistory = {
-            cpu: [],
-            memory: [],
-            disk: []
-        };
-        
-        this.maxHistoryLength = 60;
+        this.currentTheme = localStorage.getItem('theme') || 'light';
         this.charts = {};
-        
-        // Настройки оповещений по умолчанию
-        this.alertConfig = {
-            cpu_threshold: 80,
-            ram_threshold: 85,
-            disk_threshold: 90,
-            enabled: true
-        };
-        
         this.init();
     }
 
-    async init() {
-        console.log('🚀 Инициализация SysPulse Monitor...');
-        console.log('📊 Подготовка графиков...');
-        
-        // Загружаем настройки оповещений
-        await this.loadAlertConfig();
-        
-        // Инициализируем графики
+    init() {
+        console.log('🚀 SysPulse Monitor запускается...');
+        this.applyTheme(this.currentTheme);
         this.initCharts();
-        
-        // Загружаем версию приложения
-        await this.loadVersion();
-        
-        // Подключаемся к WebSocket
         this.connectWebSocket();
+        this.setupEventListeners();
+    }
+
+    applyTheme(theme) {
+        this.currentTheme = theme;
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
         
-        this.updateStatus('connecting', 'Подключение...');
+        const themeButton = document.getElementById('theme-toggle');
+        if (themeButton) {
+            themeButton.textContent = theme === 'light' ? '🌙 Тёмная' : '☀️ Светлая';
+        }
+    }
+
+    toggleTheme() {
+        const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+        this.applyTheme(newTheme);
+        this.updateChartColors();
+    }
+
+    setupEventListeners() {
+        const themeButton = document.getElementById('theme-toggle');
+        if (themeButton) {
+            themeButton.addEventListener('click', () => this.toggleTheme());
+        }
     }
 
     initCharts() {
-        const chartConfig = {
-            type: 'line',
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { enabled: false }
-                },
-                scales: {
-                    x: { display: false },
-                    y: { 
-                        display: false,
-                        min: 0,
-                        max: 100
-                    }
-                },
-                elements: {
-                    point: { radius: 0 },
-                    line: { tension: 0.4 }
-                },
-                animation: { duration: 0 }
-            }
+        const chartsConfig = {
+            cpu: { color: this.getChartColor('cpu') },
+            memory: { color: this.getChartColor('memory') },
+            disk: { color: this.getChartColor('disk') }
         };
 
-        // График CPU
-        this.charts.cpu = new Chart(
-            document.getElementById('cpu-chart'),
-            {
-                ...chartConfig,
-                data: {
-                    labels: Array(this.maxHistoryLength).fill(''),
-                    datasets: [{
-                        data: Array(this.maxHistoryLength).fill(0),
-                        borderColor: '#4CAF50',
-                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                        borderWidth: 2,
-                        fill: true
-                    }]
-                }
-            }
-        );
+        this.charts = {};
+        
+        Object.keys(chartsConfig).forEach(type => {
+            const ctx = document.getElementById(`${type}-chart`);
+            if (!ctx) return;
 
-        // График Memory
-        this.charts.memory = new Chart(
-            document.getElementById('memory-chart'),
-            {
-                ...chartConfig,
+            this.charts[type] = new Chart(ctx, {
+                type: 'line',
                 data: {
-                    labels: Array(this.maxHistoryLength).fill(''),
+                    labels: [],
                     datasets: [{
-                        data: Array(this.maxHistoryLength).fill(0),
-                        borderColor: '#2196F3',
-                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                        borderWidth: 2,
-                        fill: true
+                        data: [],
+                        borderColor: chartsConfig[type].color,
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0
                     }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            display: false,
+                            min: 0,
+                            max: 100
+                        }
+                    },
+                    animation: { duration: 0 }
                 }
-            }
-        );
+            });
+        });
+    }
 
-        // График Disk
-        this.charts.disk = new Chart(
-            document.getElementById('disk-chart'),
-            {
-                ...chartConfig,
-                data: {
-                    labels: Array(this.maxHistoryLength).fill(''),
-                    datasets: [{
-                        data: Array(this.maxHistoryLength).fill(0),
-                        borderColor: '#FF9800',
-                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                        borderWidth: 2,
-                        fill: true
-                    }]
-                }
+    getChartColor(type) {
+        const styles = getComputedStyle(document.documentElement);
+        return styles.getPropertyValue(`--chart-${type}`).trim() || '#475569';
+    }
+
+    updateChartColors() {
+        Object.keys(this.charts).forEach(type => {
+            if (this.charts[type]) {
+                this.charts[type].data.datasets[0].borderColor = this.getChartColor(type);
+                this.charts[type].update('none');
             }
-        );
+        });
     }
 
     connectWebSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
-        
-        console.log(`🔌 Попытка подключения к: ${wsUrl}`);
-        
-        this.ws = new WebSocket(wsUrl);
+        this.ws = new WebSocket(`ws://${window.location.host}/ws`);
         
         this.ws.onopen = () => {
-            console.log('✅ WebSocket подключен');
             this.isConnected = true;
-            this.reconnectAttempts = 0;
-            this.updateStatus('connected', 'Подключено (WebSocket)');
+            this.updateStatus('connected', '✅ Подключено');
         };
         
         this.ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                
-                // Обновляем метрики
-                this.updateMetricsDisplay(data);
-                this.updateCharts(data);
-                this.updateLastUpdateTime();
-                
-                // Обрабатываем оповещения если они есть
-                if (data.alerts && data.alerts.length > 0) {
-                    this.handleAlerts(data.alerts);
-                }
-                
+                this.updateAllMetrics(data);
             } catch (error) {
-                console.error('❌ Ошибка парсинга метрик:', error);
+                console.error('❌ Ошибка парсинга:', error);
             }
         };
         
-        this.ws.onclose = (event) => {
-            console.log(`🔌 WebSocket отключен: код=${event.code}, причина=${event.reason}`);
+        this.ws.onclose = () => {
             this.isConnected = false;
-            this.updateStatus('disconnected', `Отключено (код: ${event.code})`);
-            this.handleReconnection();
+            this.updateStatus('disconnected', '❌ Отключено');
         };
         
         this.ws.onerror = (error) => {
             console.error('❌ WebSocket ошибка:', error);
-            this.updateStatus('error', 'Ошибка подключения');
+            this.updateStatus('error', '⚠️ Ошибка подключения');
         };
     }
 
-    // Загружаем настройки оповещений с сервера
-    async loadAlertConfig() {
-        try {
-            const response = await fetch('/api/alerts/config');
-            this.alertConfig = await response.json();
-            console.log('⚙️ Загружены настройки оповещений:', this.alertConfig);
-        } catch (error) {
-            console.error('Ошибка загрузки настроек оповещений:', error);
+    updateAllMetrics(data) {
+        this.updateSystemMetrics(data);
+        this.updateNetworkMetrics(data);
+        this.updateProcesses(data);
+        this.updateCharts(data);
+        this.updateTime();
+    }
+
+    updateSystemMetrics(data) {
+        if (data.cpu) {
+            this.updateElement('cpu-usage', `${data.cpu.usage.toFixed(1)}%`);
+            this.updateElement('cpu-details', `${data.cpu.cores} ядер | Load: ${data.cpu.load1.toFixed(2)}`);
+        }
+        
+        if (data.memory) {
+            this.updateElement('memory-usage', `${data.memory.usage.toFixed(1)}%`);
+            if (data.memory.used && data.memory.total) {
+                const usedGB = (data.memory.used / 1024 / 1024 / 1024).toFixed(1);
+                const totalGB = (data.memory.total / 1024 / 1024 / 1024).toFixed(1);
+                this.updateElement('memory-details', `${usedGB}GB / ${totalGB}GB`);
+            }
+        }
+        
+        if (data.disk) {
+            this.updateElement('disk-usage', `${data.disk.usage.toFixed(1)}%`);
+            if (data.disk.used && data.disk.total) {
+                const usedGB = (data.disk.used / 1024 / 1024 / 1024).toFixed(1);
+                const totalGB = (data.disk.total / 1024 / 1024 / 1024).toFixed(1);
+                this.updateElement('disk-details', `${usedGB}GB / ${totalGB}GB`);
+            }
         }
     }
 
-    updateMetricsDisplay(metrics) {
-        // Обновляем CPU с цветовой индикацией
-        const cpuElement = document.getElementById('cpu-usage');
-        cpuElement.textContent = `${metrics.cpu.usage.toFixed(1)}%`;
-        this.setMetricColor(cpuElement, metrics.cpu.usage, 80, 95);
-
-        document.getElementById('cpu-details').textContent = 
-            `${metrics.cpu.cores} ядер | Load: ${metrics.cpu.load1.toFixed(2)}`;
-
-        // Обновляем Memory
-        const memUsedGB = metrics.memory.used / 1024 / 1024 / 1024;
-        const memTotalGB = metrics.memory.total / 1024 / 1024 / 1024;
-        const memElement = document.getElementById('memory-usage');
-        memElement.textContent = `${metrics.memory.usage.toFixed(1)}%`;
-        this.setMetricColor(memElement, metrics.memory.usage, 85, 95);
-
-        document.getElementById('memory-details').textContent = 
-            `${memUsedGB.toFixed(2)}GB / ${memTotalGB.toFixed(2)}GB`;
-
-        // Обновляем Disk
-        const diskUsedGB = metrics.disk.used / 1024 / 1024 / 1024;
-        const diskTotalGB = metrics.disk.total / 1024 / 1024 / 1024;
-        const diskElement = document.getElementById('disk-usage');
-        diskElement.textContent = `${metrics.disk.usage.toFixed(1)}%`;
-        this.setMetricColor(diskElement, metrics.disk.usage, 90, 95);
-
-        document.getElementById('disk-details').textContent = 
-            `${diskUsedGB.toFixed(1)}GB / ${diskTotalGB.toFixed(1)}GB`;
-    }
-
-    // Обновляем графики новыми данными
-    updateCharts(metrics) {
-        // Добавляем новые данные в историю
-        this.addToHistory('cpu', metrics.cpu.usage);
-        this.addToHistory('memory', metrics.memory.usage);
-        this.addToHistory('disk', metrics.disk.usage);
-
-        // Обновляем все графики
-        this.updateChart('cpu');
-        this.updateChart('memory');
-        this.updateChart('disk');
-    }
-
-    addToHistory(type, value) {
-        this.metricsHistory[type].push(value);
-        if (this.metricsHistory[type].length > this.maxHistoryLength) {
-            this.metricsHistory[type].shift();
-        }
-    }
-
-    updateChart(type) {
-        if (this.charts[type] && this.metricsHistory[type].length > 0) {
-            this.charts[type].data.datasets[0].data = [...this.metricsHistory[type]];
-            this.charts[type].update('none');
-        }
-    }
-
-    // Обрабатываем новые оповещения
-    handleAlerts(alerts) {
-        console.log('⚠️ Получены оповещения:', alerts);
+    updateNetworkMetrics(data) {
+        if (!data.network) return;
         
-        // Показываем оповещения в интерфейсе
-        this.updateAlertsDisplay(alerts);
-        
-        // Воспроизводим звуковые оповещения
-        this.playAlertSound(alerts);
+        const net = data.network;
+        this.updateElement('network-status', net.is_online ? '🟢 ONLINE' : '🔴 OFFLINE');
+        this.updateElement('network-upload', `${net.current_upload.toFixed(2)} Mb/s`);
+        this.updateElement('network-download', `${net.current_download.toFixed(2)} Mb/s`);
+        this.updateElement('network-ping', `${net.ping.toFixed(1)} ms`);
+        this.updateElement('network-ip', net.local_ip || '-');
     }
 
-    // Обновляем отображение оповещений
-    updateAlertsDisplay(alerts) {
-        const container = document.getElementById('alerts-container');
+    updateProcesses(data) {
+        if (!data.processes || !Array.isArray(data.processes)) return;
         
-        if (alerts.length === 0) {
-            container.innerHTML = '<div class="alert-message">✅ Оповещений нет</div>';
+        const topCPU = data.processes
+            .filter(p => p.cpu_percent !== undefined)
+            .sort((a, b) => b.cpu_percent - a.cpu_percent)
+            .slice(0, 10);
+        
+        const topMemory = data.processes
+            .filter(p => p.memory_percent !== undefined)
+            .sort((a, b) => b.memory_percent - a.memory_percent)
+            .slice(0, 10);
+        
+        this.updateProcessTable('cpu-processes', topCPU);
+        this.updateProcessTable('memory-processes', topMemory);
+    }
+
+    updateProcessTable(containerId, processes) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        if (processes.length === 0) {
+            container.innerHTML = '<div class="no-processes">Нет данных</div>';
             return;
         }
-
-        container.innerHTML = alerts.map(alert => `
-            <div class="alert-${alert.level}">
-                <strong>${alert.type.toUpperCase()}</strong>: ${alert.message}
-                <small>(${new Date(alert.timestamp).toLocaleTimeString()})</small>
-            </div>
+        
+        const rows = processes.map(proc => `
+            <tr onclick="window.monitor.showProcessDetails(${JSON.stringify(proc).replace(/"/g, '&quot;')})">
+                <td class="process-name">${this.truncateText(proc.process || 'Unknown', 25)}</td>
+                <td class="process-cpu">${proc.cpu_percent.toFixed(1)}%</td>
+                <td class="process-memory">${proc.memory_percent.toFixed(1)}%</td>
+                <td class="process-status">${proc.status || 'N/A'}</td>
+            </tr>
         `).join('');
-    }
-
-    // Воспроизводим звук оповещения
-    playAlertSound(alerts) {
-        if (!this.alertConfig.enabled) return;
-
-        // Ищем критические оповещения
-        const criticalAlerts = alerts.filter(alert => alert.level === 'critical');
         
-        if (criticalAlerts.length > 0) {
-            // Критическое оповещение - более срочный звук
-            this.createBeep(800, 200);
-        } else if (alerts.length > 0) {
-            // Обычное предупреждение
-            this.createBeep(400, 100);
-        }
+        container.innerHTML = `
+            <table class="processes-table">
+                <thead>
+                    <tr>
+                        <th>Процесс</th>
+                        <th>CPU</th>
+                        <th>Память</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
     }
 
-    // Создаем звуковой сигнал
-    createBeep(frequency, duration) {
-        try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = frequency;
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + duration / 1000);
-        } catch (error) {
-            console.log('🔇 Звуковые оповещения не поддерживаются');
-        }
-    }
-
-    // Устанавливаем цвет в зависимости от значения
-    setMetricColor(element, value, warningThreshold, criticalThreshold) {
-        element.className = 'metric-value ';
-        if (value >= criticalThreshold) {
-            element.classList.add('metric-critical');
-        } else if (value >= warningThreshold) {
-            element.classList.add('metric-warning');
-        } else {
-            element.classList.add('metric-normal');
-        }
-    }
-
-    handleReconnection() {
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.reconnectAttempts++;
-            const delay = Math.min(1000 * this.reconnectAttempts, 10000);
-            
-            console.log(`🔄 Попытка переподключения ${this.reconnectAttempts}/${this.maxReconnectAttempts} через ${delay}мс`);
-            this.updateStatus('reconnecting', `Переподключение... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-            
-            setTimeout(() => {
-                this.connectWebSocket();
-            }, delay);
-        } else {
-            console.error('❌ Превышено максимальное количество попыток переподключения');
-            this.updateStatus('error', 'Не удалось подключиться');
-        }
-    }
-
-    async loadVersion() {
-        try {
-            const response = await fetch('/api/version');
-            const data = await response.json();
-            document.getElementById('version').textContent = data.version;
-        } catch (error) {
-            console.error('Ошибка загрузки версии:', error);
-        }
-    }
-
-    updateLastUpdateTime() {
-        const now = new Date();
-        document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
-    }
-
-    updateStatus(status, message) {
-        const statusElement = document.getElementById('status');
-        statusElement.textContent = message;
-        
-        statusElement.className = 'status-value';
-        if (status === 'connected') {
-            statusElement.style.color = '#4CAF50';
-        } else if (status === 'error' || status === 'disconnected') {
-            statusElement.style.color = '#f44336';
-        } else if (status === 'connecting' || status === 'reconnecting') {
-            statusElement.style.color = '#ff9800';
-        } else {
-            statusElement.style.color = '#2196F3';
-        }
-    }
-
-    // Показываем модальное окно с настройками оповещений
-    showAlertSettings() {
-        const modal = this.createAlertSettingsModal();
-        document.body.appendChild(modal);
-    }
-
-    // Создаем модальное окно настроек
-    createAlertSettingsModal() {
+    showProcessDetails(process) {
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.innerHTML = `
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>⚙️ Настройки оповещений</h3>
+                    <h3>🔍 Детали процесса</h3>
                     <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
                 </div>
                 <div class="modal-body">
-                    <div class="setting-group">
-                        <label>
-                            <input type="checkbox" id="alerts-enabled" ${this.alertConfig.enabled ? 'checked' : ''}>
-                            Включить оповещения
-                        </label>
+                    <div class="process-detail">
+                        <label>Процесс:</label>
+                        <span>${process.process || 'Unknown'}</span>
                     </div>
-                    
-                    <div class="setting-group">
-                        <label>Порог CPU:</label>
-                        <input type="range" id="cpu-threshold" min="50" max="95" value="${this.alertConfig.cpu_threshold}" 
-                               oninput="document.getElementById('cpu-threshold-value').textContent = this.value + '%'">
-                        <span id="cpu-threshold-value">${this.alertConfig.cpu_threshold}%</span>
+                    <div class="process-detail">
+                        <label>PID:</label>
+                        <span>${process.pid}</span>
                     </div>
-                    
-                    <div class="setting-group">
-                        <label>Порог памяти:</label>
-                        <input type="range" id="ram-threshold" min="50" max="95" value="${this.alertConfig.ram_threshold}"
-                               oninput="document.getElementById('ram-threshold-value').textContent = this.value + '%'">
-                        <span id="ram-threshold-value">${this.alertConfig.ram_threshold}%</span>
+                    <div class="process-detail">
+                        <label>Пользователь:</label>
+                        <span>${process.user || 'N/A'}</span>
                     </div>
-                    
-                    <div class="setting-group">
-                        <label>Порог диска:</label>
-                        <input type="range" id="disk-threshold" min="50" max="95" value="${this.alertConfig.disk_threshold}"
-                               oninput="document.getElementById('disk-threshold-value').textContent = this.value + '%'">
-                        <span id="disk-threshold-value">${this.alertConfig.disk_threshold}%</span>
+                    <div class="process-detail">
+                        <label>Потоков:</label>
+                        <span>${process.threads || 0}</span>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Отмена</button>
-                    <button class="btn btn-primary" onclick="window.monitor.saveAlertSettings()">Сохранить</button>
+                    <div class="process-detail">
+                        <label>Запущен:</label>
+                        <span>${process.createtime ? new Date(process.createtime * 1000).toLocaleString() : 'N/A'}</span>
+                    </div>
+                    <div class="process-detail full-width">
+                        <label>Командная строка:</label>
+                        <div class="command-line">${process.commandline || 'N/A'}</div>
+                    </div>
                 </div>
             </div>
         `;
-        
-        return modal;
-    }
-
-    // Сохраняем настройки оповещений
-    async saveAlertSettings() {
-        const newConfig = {
-            enabled: document.getElementById('alerts-enabled').checked,
-            cpu_threshold: parseInt(document.getElementById('cpu-threshold').value),
-            ram_threshold: parseInt(document.getElementById('ram-threshold').value),
-            disk_threshold: parseInt(document.getElementById('disk-threshold').value)
-        };
-
-        try {
-            const response = await fetch('/api/alerts/config', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newConfig)
-            });
-
-            if (response.ok) {
-                this.alertConfig = newConfig;
-                console.log('✅ Настройки оповещений сохранены');
-                
-                // Закрываем модальное окно
-                document.querySelector('.modal-overlay').remove();
-                
-                // Показываем уведомление
-                this.showNotification('Настройки сохранены', 'success');
-            }
-        } catch (error) {
-            console.error('❌ Ошибка сохранения настроек:', error);
-            this.showNotification('Ошибка сохранения', 'error');
-        }
-    }
-
-    // Загружаем историю оповещений
-    async loadAlertHistory() {
-        try {
-            const response = await fetch('/api/alerts/history');
-            const history = await response.json();
-            this.showAlertHistoryModal(history);
-        } catch (error) {
-            console.error('Ошибка загрузки истории оповещений:', error);
-        }
-    }
-
-    // Показываем историю оповещений
-    showAlertHistoryModal(history) {
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        
-        const alertsHTML = history.alerts.map(alert => `
-            <div class="alert-history-item alert-${alert.level}">
-                <div class="alert-time">${new Date(alert.timestamp).toLocaleString()}</div>
-                <div class="alert-message">${alert.message}</div>
-                <div class="alert-value">${alert.value.toFixed(1)}% (порог: ${alert.threshold}%)</div>
-            </div>
-        `).join('');
-        
-        modal.innerHTML = `
-            <div class="modal-content" style="max-width: 600px;">
-                <div class="modal-header">
-                    <h3>📋 История оповещений</h3>
-                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert-stats">
-                        <div class="stat-item">Всего: ${history.stats.total_alerts}</div>
-                        <div class="stat-item">Активных: ${history.stats.active_alerts}</div>
-                        <div class="stat-item">Сегодня: ${history.stats.today_alerts}</div>
-                    </div>
-                    <div class="alert-history-list">
-                        ${alertsHTML.length > 0 ? alertsHTML : '<div class="no-alerts">Нет оповещений в истории</div>'}
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="window.monitor.clearAlertHistory()">Очистить историю</button>
-                    <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Закрыть</button>
-                </div>
-            </div>
-        `;
-        
         document.body.appendChild(modal);
     }
 
-    // Очищаем историю оповещений
-    async clearAlertHistory() {
-        try {
-            const response = await fetch('/api/alerts/clear', { method: 'POST' });
-            if (response.ok) {
-                this.showNotification('История оповещений очищена', 'success');
-                document.querySelector('.modal-overlay').remove();
-            }
-        } catch (error) {
-            console.error('Ошибка очистки истории:', error);
-            this.showNotification('Ошибка очистки', 'error');
+    updateCharts(data) {
+        if (data.cpu && this.charts.cpu) {
+            this.updateChart('cpu', data.cpu.usage);
+        }
+        if (data.memory && this.charts.memory) {
+            this.updateChart('memory', data.memory.usage);
+        }
+        if (data.disk && this.charts.disk) {
+            this.updateChart('disk', data.disk.usage);
         }
     }
 
-    // Показываем уведомление
-    showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.textContent = message;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
-            color: white;
-            border-radius: 5px;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
-        `;
+    updateChart(type, value) {
+        const chart = this.charts[type];
+        if (!chart) return;
         
-        document.body.appendChild(notification);
+        chart.data.labels.push('');
+        chart.data.datasets[0].data.push(value);
         
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
+        if (chart.data.labels.length > 30) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+        }
+        
+        chart.update('none');
     }
 
-    disconnect() {
-        if (this.ws) {
-            this.ws.close();
-        }
+    updateElement(id, value) {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    }
+
+    updateStatus(status, message) {
+        this.updateElement('status', message);
+    }
+
+    updateTime() {
+        this.updateElement('lastUpdate', new Date().toLocaleTimeString());
+    }
+
+    truncateText(text, length) {
+        return text.length > length ? text.substring(0, length) + '...' : text;
     }
 }
 
-// Добавляем CSS анимацию
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    
-    .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-    
-    .modal-content {
-        background: white;
-        border-radius: 10px;
-        padding: 0;
-        max-width: 500px;
-        width: 90%;
-        max-height: 80vh;
-        overflow-y: auto;
-    }
-    
-    .modal-header {
-        padding: 20px;
-        border-bottom: 1px solid #eee;
-        display: flex;
-        justify-content: between;
-        align-items: center;
-    }
-    
-    .modal-header h3 {
-        margin: 0;
-        flex: 1;
-    }
-    
-    .modal-close {
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        color: #666;
-    }
-    
-    .modal-body {
-        padding: 20px;
-    }
-    
-    .modal-footer {
-        padding: 20px;
-        border-top: 1px solid #eee;
-        display: flex;
-        gap: 10px;
-        justify-content: flex-end;
-    }
-    
-    .setting-group {
-        margin-bottom: 20px;
-    }
-    
-    .setting-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-    }
-    
-    .setting-group input[type="range"] {
-        width: 100%;
-        margin: 10px 0;
-    }
-    
-    .btn {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 14px;
-    }
-    
-    .btn-primary {
-        background: #667eea;
-        color: white;
-    }
-    
-    .btn-secondary {
-        background: #6c757d;
-        color: white;
-    }
-    
-    .alert-stats {
-        display: flex;
-        gap: 20px;
-        margin-bottom: 20px;
-        padding: 15px;
-        background: #f8f9fa;
-        border-radius: 5px;
-    }
-    
-    .stat-item {
-        font-weight: bold;
-    }
-    
-    .alert-history-item {
-        padding: 10px;
-        margin-bottom: 10px;
-        border-radius: 5px;
-        border-left: 4px solid;
-    }
-    
-    .alert-history-item.alert-warning {
-        background: #fff3cd;
-        border-left-color: #ffc107;
-    }
-    
-    .alert-history-item.alert-critical {
-        background: #f8d7da;
-        border-left-color: #dc3545;
-    }
-    
-    .alert-time {
-        font-size: 12px;
-        color: #666;
-        margin-bottom: 5px;
-    }
-    
-    .alert-value {
-        font-size: 12px;
-        color: #666;
-        margin-top: 5px;
-    }
-    
-    .no-alerts {
-        text-align: center;
-        color: #666;
-        padding: 20px;
-    }
-`;
-document.head.appendChild(style);
-
-// Запускаем приложение когда DOM загружен
+// Запуск приложения
 document.addEventListener('DOMContentLoaded', () => {
     window.monitor = new SysPulseMonitor();
 });
 
-// Закрываем WebSocket при закрытии страницы
 window.addEventListener('beforeunload', () => {
-    if (window.monitor) {
-        window.monitor.disconnect();
+    if (window.monitor && window.monitor.ws) {
+        window.monitor.ws.close();
     }
 });
